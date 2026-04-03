@@ -1,0 +1,25 @@
+{
+  "name": "problem-5",
+  "version": "1.0.0",
+  "description": "CRUD API backend for items using Express, TypeScript, and SQLite.",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test:api": "bash ./test-api.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  }
+}
