@@ -7,14 +7,16 @@ export interface Item {
   updated_at: string;
 }
 
-export interface CreateItemInput {
-  name: string;
-  description?: string;
-  price: number;
+export interface PaginationMetadata {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
-export interface UpdateItemInput {
-  name?: string;
-  description?: string;
-  price?: number;
+export interface ItemListResponse {
+  items: Item[];
+  pagination: PaginationMetadata;
 }

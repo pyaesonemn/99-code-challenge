@@ -22,6 +22,9 @@ db.exec(`
     created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
   );
+
+  CREATE INDEX IF NOT EXISTS idx_items_created_at ON items (created_at);
+  CREATE INDEX IF NOT EXISTS idx_items_price ON items (price);
 `);
 
 export default db;

@@ -3,14 +3,21 @@
 set -euo pipefail
 
 BASE_URL="${1:-${BASE_URL:-http://localhost:3000}}"
+ROOT_URL="${BASE_URL%/}"
 API_URL="${BASE_URL%/}/api/items"
 TMP_DIR="$(mktemp -d)"
-ITEM_ID=""
+declare -a CREATED_IDS=()
 RUN_ID="$(date +%s)"
-ITEM_NAME="laptop-${RUN_ID}"
-UPDATED_NAME="updated-laptop-${RUN_ID}"
+ITEM_PREFIX="smoke-item-${RUN_ID}"
+UPDATED_NAME="updated-${ITEM_PREFIX}"
 
 cleanup() {
+  if curl -sS -o /dev/null "${API_URL}" 2>/dev/null; then
+    for item_id in "${CREATED_IDS[@]}"; do
+      curl -sS -o /dev/null -X DELETE "${API_URL}/${item_id}" || true
+    done
+  fi
+
   rm -rf "${TMP_DIR}"
 }
 
@@ -78,52 +85,86 @@ if ! curl -sS -o /dev/null "${API_URL}"; then
   exit 1
 fi
 
+for item_number in 1 2 3 4 5 6; do
+  item_name="${ITEM_PREFIX}-${item_number}"
+  item_price=$((100 + item_number))
+
+  request \
+    "Create item ${item_number}" \
+    "POST" \
+    "${API_URL}" \
+    "201" \
+    "${TMP_DIR}/create-${item_number}.json" \
+    "{\"name\":\"${item_name}\",\"description\":\"MacBook Pro ${item_number}\",\"price\":${item_price}}"
+
+  item_id="$(
+    node -e "const fs = require('fs'); const item = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); if (!item.id) process.exit(1); process.stdout.write(String(item.id));" \
+      "${TMP_DIR}/create-${item_number}.json"
+  )"
+
+  CREATED_IDS+=("${item_id}")
+  assert_contains "${TMP_DIR}/create-${item_number}.json" "\"name\":\"${item_name}\""
+done
+
 request \
-  "Create item" \
-  "POST" \
-  "${API_URL}" \
-  "201" \
-  "${TMP_DIR}/create.json" \
-  "{\"name\":\"${ITEM_NAME}\",\"description\":\"MacBook Pro 14 inch\",\"price\":1999.99}"
-
-ITEM_ID="$(
-  node -e "const fs = require('fs'); const item = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); if (!item.id) process.exit(1); process.stdout.write(String(item.id));" \
-    "${TMP_DIR}/create.json"
-)"
-
-assert_contains "${TMP_DIR}/create.json" "\"name\":\"${ITEM_NAME}\""
-
-request \
-  "List items" \
+  "List items with default pagination" \
   "GET" \
-  "${API_URL}" \
+  "${API_URL}?name=${ITEM_PREFIX}" \
   "200" \
   "${TMP_DIR}/list.json"
 
-assert_contains "${TMP_DIR}/list.json" "\"id\":${ITEM_ID}"
+assert_contains "${TMP_DIR}/list.json" "\"items\":["
+assert_contains "${TMP_DIR}/list.json" "\"pagination\":{"
+assert_contains "${TMP_DIR}/list.json" "\"page\":1"
+assert_contains "${TMP_DIR}/list.json" "\"limit\":10"
+assert_contains "${TMP_DIR}/list.json" "\"totalItems\":6"
+assert_contains "${TMP_DIR}/list.json" "\"totalPages\":1"
+assert_contains "${TMP_DIR}/list.json" "\"hasNextPage\":false"
+assert_contains "${TMP_DIR}/list.json" "\"hasPreviousPage\":false"
+assert_contains "${TMP_DIR}/list.json" "\"name\":\"${ITEM_PREFIX}-1\""
 
 request \
-  "List items with filters" \
+  "List items with filters and pagination metadata" \
   "GET" \
-  "${API_URL}?name=${ITEM_NAME}&min_price=500&max_price=2500&sort=price&order=asc" \
+  "${API_URL}?name=${ITEM_PREFIX}&min_price=103&max_price=106&sort=price&order=asc&page=1&limit=2" \
   "200" \
   "${TMP_DIR}/filtered.json"
 
-assert_contains "${TMP_DIR}/filtered.json" "\"name\":\"${ITEM_NAME}\""
+assert_contains "${TMP_DIR}/filtered.json" "\"totalItems\":4"
+assert_contains "${TMP_DIR}/filtered.json" "\"totalPages\":2"
+assert_contains "${TMP_DIR}/filtered.json" "\"hasNextPage\":true"
+assert_contains "${TMP_DIR}/filtered.json" "\"hasPreviousPage\":false"
+assert_contains "${TMP_DIR}/filtered.json" "\"price\":103"
+assert_contains "${TMP_DIR}/filtered.json" "\"price\":104"
+
+request \
+  "List items on page 2" \
+  "GET" \
+  "${API_URL}?name=${ITEM_PREFIX}&sort=price&order=asc&page=2&limit=5" \
+  "200" \
+  "${TMP_DIR}/page-2.json"
+
+assert_contains "${TMP_DIR}/page-2.json" "\"page\":2"
+assert_contains "${TMP_DIR}/page-2.json" "\"limit\":5"
+assert_contains "${TMP_DIR}/page-2.json" "\"totalItems\":6"
+assert_contains "${TMP_DIR}/page-2.json" "\"totalPages\":2"
+assert_contains "${TMP_DIR}/page-2.json" "\"hasNextPage\":false"
+assert_contains "${TMP_DIR}/page-2.json" "\"hasPreviousPage\":true"
+assert_contains "${TMP_DIR}/page-2.json" "\"price\":106"
 
 request \
   "Get one item" \
   "GET" \
-  "${API_URL}/${ITEM_ID}" \
+  "${API_URL}/${CREATED_IDS[0]}" \
   "200" \
   "${TMP_DIR}/get.json"
 
-assert_contains "${TMP_DIR}/get.json" "\"id\":${ITEM_ID}"
+assert_contains "${TMP_DIR}/get.json" "\"id\":${CREATED_IDS[0]}"
 
 request \
   "Update item" \
   "PUT" \
-  "${API_URL}/${ITEM_ID}" \
+  "${API_URL}/${CREATED_IDS[0]}" \
   "200" \
   "${TMP_DIR}/update.json" \
   "{\"name\":\"${UPDATED_NAME}\",\"price\":1799.99}"
@@ -134,18 +175,36 @@ assert_contains "${TMP_DIR}/update.json" "\"price\":1799.99"
 request \
   "Delete item" \
   "DELETE" \
-  "${API_URL}/${ITEM_ID}" \
+  "${API_URL}/${CREATED_IDS[0]}" \
   "204" \
   "${TMP_DIR}/delete.txt"
 
 request \
   "Get deleted item" \
   "GET" \
-  "${API_URL}/${ITEM_ID}" \
+  "${API_URL}/${CREATED_IDS[0]}" \
   "404" \
   "${TMP_DIR}/missing.json"
 
 assert_contains "${TMP_DIR}/missing.json" "Item not found"
+
+request \
+  "Invalid page" \
+  "GET" \
+  "${API_URL}?page=0" \
+  "400" \
+  "${TMP_DIR}/invalid-page.json"
+
+assert_contains "${TMP_DIR}/invalid-page.json" "page must be a positive integer"
+
+request \
+  "Invalid limit" \
+  "GET" \
+  "${API_URL}?limit=0" \
+  "400" \
+  "${TMP_DIR}/invalid-limit.json"
+
+assert_contains "${TMP_DIR}/invalid-limit.json" "limit must be an integer between 1 and 100"
 
 request \
   "Create invalid item" \
@@ -156,5 +215,14 @@ request \
   "{\"description\":\"Missing name\",\"price\":10}"
 
 assert_contains "${TMP_DIR}/invalid.json" "Name is required"
+
+request \
+  "Unknown route" \
+  "GET" \
+  "${ROOT_URL}/api/unknown-route" \
+  "404" \
+  "${TMP_DIR}/unknown-route.json"
+
+assert_contains "${TMP_DIR}/unknown-route.json" "Route not found"
 
 printf '\nAll API checks passed.\n'
