@@ -53,6 +53,49 @@ describe('Items API', () => {
     });
   });
 
+  it('accepts null description when creating an item', async () => {
+    const response = await request(app)
+      .post('/api/items')
+      .send({
+        name: 'Laptop',
+        description: null,
+        price: 1999.99,
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({
+      id: expect.any(Number),
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+    });
+  });
+
+  it('stores null when creating an item without description', async () => {
+    const response = await request(app)
+      .post('/api/items')
+      .send({
+        name: 'Laptop',
+        price: 1999.99,
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.description).toBeNull();
+  });
+
+  it('stores null when creating an item with a blank description', async () => {
+    const response = await request(app)
+      .post('/api/items')
+      .send({
+        name: 'Laptop',
+        description: '   ',
+        price: 1999.99,
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.description).toBeNull();
+  });
+
   it('lists items with default pagination metadata', async () => {
     await createItem('Laptop', 1999.99);
     await createItem('Mouse', 49.99);
@@ -126,6 +169,28 @@ describe('Items API', () => {
     expect(response.status).toBe(200);
     expect(response.body.price).toBe(1799.99);
     expect(response.body.updated_at).not.toBe(created.body.updated_at);
+  });
+
+  it('accepts null description when updating an item', async () => {
+    const created = await createItem('Laptop', 1999.99);
+
+    const response = await request(app)
+      .put(`/api/items/${created.body.id}`)
+      .send({ description: null });
+
+    expect(response.status).toBe(200);
+    expect(response.body.description).toBeNull();
+  });
+
+  it('clears description when updating an item with a blank description', async () => {
+    const created = await createItem('Laptop', 1999.99);
+
+    const response = await request(app)
+      .put(`/api/items/${created.body.id}`)
+      .send({ description: '   ' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.description).toBeNull();
   });
 
   it('deletes an item and returns 204', async () => {

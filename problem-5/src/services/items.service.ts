@@ -6,12 +6,27 @@ import {
 import * as itemsModel from '@/models/items.model';
 import { Item, ItemListResponse } from '@/types/item';
 
+function normalizeDescription(
+  description: string | null | undefined,
+): string | null | undefined {
+  if (description === undefined) {
+    return undefined;
+  }
+
+  if (description === null) {
+    return null;
+  }
+
+  const normalizedDescription = description.trim();
+
+  return normalizedDescription === '' ? null : normalizedDescription;
+}
+
 export function createItem(input: CreateItemInput): Item {
   const now = new Date().toISOString();
   const createdItem = itemsModel.createItem({
     name: input.name.trim(),
-    description:
-      input.description !== undefined ? input.description.trim() : null,
+    description: normalizeDescription(input.description) ?? null,
     price: input.price,
     created_at: now,
     updated_at: now,
@@ -58,9 +73,8 @@ export function updateItem(
   }
 
   const updatedItem = itemsModel.updateItemById(id, {
-    name: input.name !== undefined ? input.name.trim() : undefined,
-    description:
-      input.description !== undefined ? input.description.trim() : undefined,
+    name: input.name?.trim(),
+    description: normalizeDescription(input.description),
     price: input.price,
     updated_at: new Date().toISOString(),
   });

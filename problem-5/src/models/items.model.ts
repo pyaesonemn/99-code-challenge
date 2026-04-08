@@ -100,7 +100,7 @@ export function updateItemById(
   changes: UpdateItemChanges,
 ): Item | undefined {
   const fields: string[] = [];
-  const params: Array<string | number> = [];
+  const params: Array<string | number | null> = [];
 
   if (changes.name !== undefined) {
     fields.push('name = ?');

@@ -124,6 +124,89 @@ describe('items service', () => {
     expect(result.name).toBe('Laptop');
   });
 
+  it('passes null description to createItem', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-07T10:00:00.000Z'));
+
+    vi.mocked(itemsModel.createItem).mockReturnValue({
+      id: 1,
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T10:00:00.000Z',
+    });
+
+    itemsService.createItem({
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+    });
+
+    expect(itemsModel.createItem).toHaveBeenCalledWith({
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T10:00:00.000Z',
+    });
+  });
+
+  it('stores null when createItem omits description', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-07T10:00:00.000Z'));
+
+    vi.mocked(itemsModel.createItem).mockReturnValue({
+      id: 1,
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T10:00:00.000Z',
+    });
+
+    itemsService.createItem({
+      name: 'Laptop',
+      price: 1999.99,
+    });
+
+    expect(itemsModel.createItem).toHaveBeenCalledWith({
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T10:00:00.000Z',
+    });
+  });
+
+  it('stores null when createItem receives a blank description', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-07T10:00:00.000Z'));
+
+    vi.mocked(itemsModel.createItem).mockReturnValue({
+      id: 1,
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T10:00:00.000Z',
+    });
+
+    itemsService.createItem({
+      name: 'Laptop',
+      description: '   ',
+      price: 1999.99,
+    });
+
+    expect(itemsModel.createItem).toHaveBeenCalledWith({
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T10:00:00.000Z',
+    });
+  });
+
   it('passes trimmed values and updated_at to updateItem', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-07T11:00:00.000Z'));
@@ -158,5 +241,104 @@ describe('items service', () => {
       updated_at: '2026-04-07T11:00:00.000Z',
     });
     expect(result?.updated_at).toBe('2026-04-07T11:00:00.000Z');
+  });
+
+  it('passes null description to updateItem when explicitly provided', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-07T11:00:00.000Z'));
+
+    vi.mocked(itemsModel.findItemById).mockReturnValue({
+      id: 1,
+      name: 'Laptop',
+      description: 'MacBook Pro',
+      price: 1999.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T10:00:00.000Z',
+    });
+    vi.mocked(itemsModel.updateItemById).mockReturnValue({
+      id: 1,
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T11:00:00.000Z',
+    });
+
+    itemsService.updateItem(1, {
+      description: null,
+    });
+
+    expect(itemsModel.updateItemById).toHaveBeenCalledWith(1, {
+      name: undefined,
+      description: null,
+      price: undefined,
+      updated_at: '2026-04-07T11:00:00.000Z',
+    });
+  });
+
+  it('clears description when updateItem receives a blank description', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-07T11:00:00.000Z'));
+
+    vi.mocked(itemsModel.findItemById).mockReturnValue({
+      id: 1,
+      name: 'Laptop',
+      description: 'MacBook Pro',
+      price: 1999.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T10:00:00.000Z',
+    });
+    vi.mocked(itemsModel.updateItemById).mockReturnValue({
+      id: 1,
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T11:00:00.000Z',
+    });
+
+    itemsService.updateItem(1, {
+      description: '   ',
+    });
+
+    expect(itemsModel.updateItemById).toHaveBeenCalledWith(1, {
+      name: undefined,
+      description: null,
+      price: undefined,
+      updated_at: '2026-04-07T11:00:00.000Z',
+    });
+  });
+
+  it('does not clear description when updateItem omits it', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-07T11:00:00.000Z'));
+
+    vi.mocked(itemsModel.findItemById).mockReturnValue({
+      id: 1,
+      name: 'Laptop',
+      description: 'MacBook Pro',
+      price: 1999.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T10:00:00.000Z',
+    });
+    vi.mocked(itemsModel.updateItemById).mockReturnValue({
+      id: 1,
+      name: 'Laptop',
+      description: 'MacBook Pro',
+      price: 1799.99,
+      created_at: '2026-04-07T10:00:00.000Z',
+      updated_at: '2026-04-07T11:00:00.000Z',
+    });
+
+    itemsService.updateItem(1, {
+      price: 1799.99,
+    });
+
+    expect(itemsModel.updateItemById).toHaveBeenCalledWith(1, {
+      name: undefined,
+      description: undefined,
+      price: 1799.99,
+      updated_at: '2026-04-07T11:00:00.000Z',
+    });
   });
 });

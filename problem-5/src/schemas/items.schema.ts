@@ -16,7 +16,11 @@ const updateNameSchema = z
   .trim()
   .min(1, { error: 'Name must be a non-empty string' });
 
-const descriptionSchema = z.string({ error: 'Description must be a string' });
+const descriptionSchema = z
+  .string({ error: 'Description must be a string' })
+  .trim()
+  .transform((value) => (value === '' ? null : value))
+  .nullable();
 const priceSchema = z
   .number({ error: 'Price must be a non-negative number' })
   .refine((value) => !Number.isNaN(value) && value >= 0, {

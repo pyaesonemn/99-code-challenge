@@ -22,6 +22,36 @@ describe('items schemas', () => {
     });
   });
 
+  it('accepts null description on create', () => {
+    const result = createItemSchema.safeParse({
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+    });
+  });
+
+  it('normalizes blank description to null on create', () => {
+    const result = createItemSchema.safeParse({
+      name: 'Laptop',
+      description: '   ',
+      price: 1999.99,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({
+      name: 'Laptop',
+      description: null,
+      price: 1999.99,
+    });
+  });
+
   it('rejects a blank create name', () => {
     const result = createItemSchema.safeParse({
       name: '   ',
@@ -51,6 +81,28 @@ describe('items schemas', () => {
     expect(result.error?.issues[0]?.message).toBe(
       'At least one field is required to update',
     );
+  });
+
+  it('accepts null description on update', () => {
+    const result = updateItemSchema.safeParse({
+      description: null,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({
+      description: null,
+    });
+  });
+
+  it('normalizes blank description to null on update', () => {
+    const result = updateItemSchema.safeParse({
+      description: '   ',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({
+      description: null,
+    });
   });
 
   it('rejects an invalid id param', () => {
